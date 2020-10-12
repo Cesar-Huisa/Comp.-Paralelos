@@ -1,1 +1,1 @@
-"# Comp.-Paralelos" 
+# Comp.-Paralelos 
