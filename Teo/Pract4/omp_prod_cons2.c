@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <omp.h>
-#include "queue.h"
+#include "queue_lk.h"
 
 const int MAX_MSG = 10000;
 
@@ -10,7 +10,6 @@ void Send_msg(struct queue_s* msg_queues[], int my_rank,
       int thread_count, int msg_number);
 void Try_receive(struct queue_s* q_p, int my_rank);
 int Done(struct queue_s* q_p, int done_sending, int thread_count);
-
 
 int main(int argc, char* argv[]) {
    int thread_count;
@@ -33,7 +32,7 @@ int main(int argc, char* argv[]) {
       srandom(my_rank);
       msg_queues[my_rank] = Allocate_queue();
 
-#     pragma omp barrier 
+#     pragma omp barrier
 
       for (msg_number = 0; msg_number < send_max; msg_number++) {
          Send_msg(msg_queues, my_rank, thread_count, msg_number);
@@ -42,7 +41,7 @@ int main(int argc, char* argv[]) {
 #     pragma omp atomic
       done_sending++;
 #     ifdef DEBUG
-      printf("Hilo %d > enviado\n", my_rank);
+      printf("Hilo %d > envio correcto\n", my_rank);
 #     endif
 
       while (!Done(msg_queues[my_rank], done_sending, thread_count))
@@ -54,7 +53,7 @@ int main(int argc, char* argv[]) {
 
    free(msg_queues);
    return 0;
-} 
+}
 
 
 void Usage(char *prog_name) {
@@ -64,32 +63,32 @@ void Usage(char *prog_name) {
    exit(0);
 } 
 
-
 void Send_msg(struct queue_s* msg_queues[], int my_rank, 
       int thread_count, int msg_number) {
-
    int mesg = -msg_number;
    int dest = random() % thread_count;
-#  pragma omp critical
-   Enqueue(msg_queues[dest], my_rank, mesg);
+   struct queue_s* q_p = msg_queues[dest];
+   omp_set_lock(&q_p->lock);
+   Enqueue(q_p, my_rank, mesg);
+   omp_unset_lock(&q_p->lock);
 #  ifdef DEBUG
    printf("Hilo %d > envio %d a %d\n", my_rank, mesg, dest);
 #  endif
-}
-
+} 
 
 void Try_receive(struct queue_s* q_p, int my_rank) {
    int src, mesg;
    int queue_size = q_p->enqueued - q_p->dequeued;
 
    if (queue_size == 0) return;
-   else if (queue_size == 1)
-#     pragma omp critical
+   else if (queue_size == 1) {
+      omp_set_lock(&q_p->lock);
       Dequeue(q_p, &src, &mesg);  
-   else
+      omp_unset_lock(&q_p->lock);
+   } else
       Dequeue(q_p, &src, &mesg);
    printf("Hilo %d > recivio %d de %d\n", my_rank, mesg, src);
-} 
+}
 
 int Done(struct queue_s* q_p, int done_sending, int thread_count) {
    int queue_size = q_p->enqueued - q_p->dequeued;
