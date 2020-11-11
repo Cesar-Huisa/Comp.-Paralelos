@@ -1,1 +1,1 @@
-"# Comp.-Paralelos" 
+"Repositorio del curso de Computacion paralela" 

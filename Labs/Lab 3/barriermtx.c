@@ -28,9 +28,9 @@ int main(int argc, char* argv[]) {
    pthread_mutex_init(&barrier_mutex, NULL);
 
    GET_TIME(start);
-   for (thread = 0; thread < thread_count; thread++)
-      pthread_create(&thread_handles[thread], NULL,
-          Thread_work, (void*) thread);
+   for (thread = 0; thread < thread_count; thread++) {
+      pthread_create(&thread_handles[thread], NULL,Thread_work, (void*) thread);
+   }
 
    for (thread = 0; thread < thread_count; thread++) {
       pthread_join(thread_handles[thread], NULL);
@@ -45,7 +45,6 @@ int main(int argc, char* argv[]) {
 
 
 void Usage(char* prog_name) {
-
    fprintf(stderr, "usage: %s <number of threads>\n", prog_name);
    exit(0);
 }
